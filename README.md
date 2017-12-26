@@ -1,8 +1,7 @@
 # fradius-mkpasswd
 
 ## About
-Password hash generator for [FreeRADIUS](https://freeradius.org/)<sup>1</sup> PAP authentication, probably compatible
-with OpenLDAP's slapd<sup>2</sup> password.
+Password hash generator for [FreeRADIUS](https://freeradius.org/)<sup>1</sup> PAP authentication.
 
 ## Requirement
 - Python 2.6+ for module methods.
@@ -109,7 +108,7 @@ If imported as a module, this script exports:
 - warning ```fradius_mkpasswd.SaltWarning```
 
    This warning is raised whenever a bad salt is supplied for hash. You can filter this warning if required
-   ([example](fradius-mkpasswd.py#L268)), but no exception is raised; the script will automatically fix the salt.
+   ([example](fradius_mkpasswd.py#L272)), but no exception is raised; the script will automatically fix the salt.
 - ```fradius_mkpasswd.ATTRIBUTE_KEY```
 
    Attribute key for generated salt. By default this variable is set as ```Password-With-Header``` for
@@ -196,6 +195,10 @@ If imported as a module, this script exports:
    print generate_hash(password, salt, algorithm)
    
    ```
+
+## Notes
+As discussed on several section before, with several modifications, this hash generator probably compatible with
+[OpenLDAP](https://www.openldap.org/) slapd<sup>2</sup> password storage.
 
 ## License
 This project is licensed under the terms of the MIT license. Full text of the license can be read under
