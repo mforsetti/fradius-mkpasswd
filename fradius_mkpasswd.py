@@ -32,6 +32,7 @@ __version__ = "0.1-devel"
 ######################################################################################################
 
 ATTRIBUTE_KEY = "Password-With-Header"
+ATTRIBUTE_OP = ":="
 MIN_SALT_LENGTH = 8
 MIN_PASSWD_LENGTH = 8
 
@@ -109,27 +110,27 @@ def generate_hash(password, salt, algorithm, bare=False):
     else:
         raise AlgorithmError("No algorithm specified or algorithm is not supported.")
     if not bare:
-        ret = "{0} := {1}".format(ATTRIBUTE_KEY, ret)
+        ret = "{0} {2} {1}".format(ATTRIBUTE_KEY, ret, ATTRIBUTE_OP)
 
     return ret
 
 
-def check_algorithm(algo_str):
+def check_algorithm(algorithm):
     """
     Check given hashing algorithm.
-    :param str algo_str: Hashing algorithm name.
+    :param str algorithm: Hashing algorithm name.
     :return tuple(bool, None|str): A tuple of check result (True if OK, False if invalid) and error message if check
                                    failed or None if check success.
     """
-    return (True, None) if algo_str in AVAILABLE_ALG \
+    return (True, None) if algorithm in AVAILABLE_ALG \
         else (False, "Invalid or unsupported algorithm.")
 
 
-def check_salt(salt_str, algo_str):
+def check_salt(salt, algorithm):
     """
-    Check and fix salt depending of the hashing algorithm and salt string given.
-    :param str | bool salt_str: Salt string to check and fix.
-    :param str algo_str: Hash algorithm to check the salt against.
+    Check and fixcheck_salt(salt, algorithm) salt depending of the hashing algorithm and salt string given.
+    :param str | bool salt: Salt string to check and fix.
+    :param str algorithm: Hash algorithm to check the salt against.
     :return tuple(bool, str | None, str | None): A tuple of salt status.
                                                  First element is True if salt string is okay and False if salt string
                                                      has problems.
@@ -138,31 +139,31 @@ def check_salt(salt_str, algo_str):
                                                      say.
                                                  Third element is fixed salt string.
     """
-    if algo_str in CLEARTEXT:
-        return True, None if algo_str is None else "`cleartext' algorithm does not support salt string.", None
-    elif algo_str in CRYPT_ALG:
-        if salt_str is True or salt_str is None:
+    if algorithm in CLEARTEXT:
+        return True, None if algorithm is None else "`cleartext' algorithm does not support salt string.", None
+    elif algorithm in CRYPT_ALG:
+        if salt is True or salt is None:
             return True, None, generate_random(CRYPT_SALT_LENGTH, CRYPT_SALT_CHARSET)
         else:
-            temp = re.match(CRYPT_SALT_RE, salt_str)
-            if temp is None or not temp.group(0) == salt_str:
+            temp = re.match(CRYPT_SALT_RE, salt)
+            if temp is None or not temp.group(0) == salt:
                 return True, "Invalid salt character found. Generated new salt string.",\
                        generate_random(CRYPT_SALT_LENGTH, CRYPT_SALT_CHARSET)
             else:
                 msg = None
-                if len(salt_str) < CRYPT_SALT_LENGTH:
-                    salt_str += generate_random(CRYPT_SALT_LENGTH, CRYPT_SALT_CHARSET)
+                if len(salt) < CRYPT_SALT_LENGTH:
+                    salt += generate_random(CRYPT_SALT_LENGTH, CRYPT_SALT_CHARSET)
                     msg = "Salt too short. Appended random salt string."
-                return True, msg, salt_str[:8]
-    elif algo_str in OPENSSL_ALG:
-        if salt_str is None or salt_str is True:
-            return True, None, None if salt_str is None else generate_random(MIN_SALT_LENGTH, None)
+                return True, msg, salt[:8]
+    elif algorithm in OPENSSL_ALG:
+        if salt is None or salt is True:
+            return True, None, None if salt is None else generate_random(MIN_SALT_LENGTH, None)
         else:
             msg = None
-            if len(salt_str) < MIN_SALT_LENGTH:
-                salt_str += generate_random(MIN_SALT_LENGTH - len(salt_str))
+            if len(salt) < MIN_SALT_LENGTH:
+                salt += generate_random(MIN_SALT_LENGTH - len(salt))
                 msg = "Salt too short. Appended random salt string."
-            return True, msg, salt_str
+            return True, msg, salt
     else:
         return False, "Invalid or unsupported algorithm.", None
 
@@ -262,7 +263,10 @@ def console_main():
         print >> sys.stderr, "*** E: Password too short. Please specify longer password (at least {0} " \
                              "characters).".format(MIN_PASSWD_LENGTH)
     while password is None or len(password) < MIN_PASSWD_LENGTH:
-        password = getpass.getpass("Password [at least {0} characters]: ".format(MIN_PASSWD_LENGTH))
+        try:
+            password = getpass.getpass("Password [at least {0} characters]: ".format(MIN_PASSWD_LENGTH))
+        except (KeyboardInterrupt, EOFError):
+            return 1
 
     try:
         with warnings.catch_warnings(record=True) as w:
